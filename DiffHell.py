@@ -6,11 +6,11 @@ import random
         
 PROMPT = 'DH> '
 HELLO_MSG = """
-    X============================================X
+    .--------------------------------------------.
     |                                            |
     |      SECURE PROTOCOL SIMULATOR 9001        |
     |                                            |
-    X============================================X
+    '--------------------------------------------'
     
     Welcome!
     
@@ -90,7 +90,7 @@ class ModuloDHProtocol(CommProtocol):
         handshake_data = {}
         
         pub_key = None
-        pub_key = build_public_key(clients=targets, **kwargs)
+        pub_key = cls.build_public_key(clients=targets, **kwargs)
         
         if pub_key: handshake_data[PUBLIC_KEY] = pub_key
         
@@ -100,8 +100,9 @@ class ModuloDHProtocol(CommProtocol):
         
     @staticmethod
     def build_public_key(clients, *args, **kwargs):
-        prime = random.choice(clients).pick_prime()
-        root = random.choice(clients).pick_primitive_root_mod(prime)      
+        _clients = tuple(clients)
+        prime = random.choice(_clients).pick_prime()
+        root = random.choice(_clients).pick_primitive_root_mod(prime)      
         return (prime, root)
     
 DEFAULT_AGENT_PROTOCOL = ModuloDHProtocol
@@ -111,13 +112,23 @@ class Agent(object):
         self.protocol = protocol or DEFAULT_AGENT_PROTOCOL
         self.connections = {}
         
+    def __rshift__(self, other):
+        return self.connect(other)
+        
+    def __lshift__(self, other):
+        return self.request_connection(requester=other)
+        
     @staticmethod
     def pick_integer(*args, **kwargs):
         return random.randint(1,300) # placeholder implementation
         
     @staticmethod
     def pick_prime(*args, **kwargs):
-        return random.choice({3,5,7,11,13,17,19,23}) # placeholder implementation
+        return random.choice([3,5,7,11,13,17,19,23]) # placeholder implementation
+        
+    @staticmethod
+    def pick_primitive_root_mod(*args, **kwargs):
+        return random.choice([3,5,7,11,13,17,19,23]) # placeholder implementation
         
     def setup(self, target, protocol=None, **kwargs):
         _protocol = protocol or self.protocol
@@ -146,40 +157,17 @@ class Agent(object):
         connect_callsig = {}
         connect_callsig.update(kwargs)
         return self.connect(target=requester, **connect_callsig)
-        
-        
-def runREPL(prompt=PROMPT, welcome_msg=HELLO_MSG):
-    from pprint import pprint
-
-    run_loop = True
-    print(welcome_msg)
-    curr_printer = print
-    
-    while run_loop:
-        special_input = False
-        try: 
-            user_input = input(prompt)
-            
-            if user_input.upper() == '>PP':
-                special_input = True
-                curr_printer = pprint if curr_printer is not pprint else print
-                print('Pretty Printing {}'.format('enabled' if curr_printer is pprint else 'disabled'))
-                
-            if not special_input:
-                try: curr_printer(repr(eval(user_input)))
-                except SyntaxError: exec(user_input)
-            
-        except (EOFError, KeyboardInterrupt): run_loop = False
-        except Exception: sys.excepthook(*sys.exc_info())
-    
-    else:
-        print('Quitting...')
     
         
 def main():
     global Agents
     Agents = {id(ag): ag for ag in (Agent() for _ in range(4))}
-    runREPL()
+    
+    global A,B
+    A,B = [Agents[set(Agents).pop()] for _ in range(2)]
+    
+    from interfaces.cli import runREPL
+    runREPL(prompt=PROMPT, welcome_msg=HELLO_MSG, repl_globals=globals())
     
 if __name__ == '__main__':
     main()
