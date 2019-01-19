@@ -19,8 +19,9 @@ REPL_SPECIAL_COMMANDS = {
     '>PP': switch_pprint
 }    
         
-def runREPL(prompt= '> ', welcome_msg='', repl_globals=None):
+def runREPL(prompt= '> ', welcome_msg='', repl_globals=None, repl_locals=None):
     if repl_globals: globals().update(repl_globals)
+    if repl_locals: locals().update(repl_locals)
     config = {}
     config[PRINTER] = print
     
